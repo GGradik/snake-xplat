@@ -19,7 +19,7 @@ CORE_SRC = src/engine.c $(LUA_SRC)
 GAME_SRC = src/main.c $(CORE_SRC)
 DEPS     = $(wildcard src/*.h) build/game_lua.h
 
-.PHONY: all linux test clean
+.PHONY: all linux test test-mips clean
 
 all: linux
 
@@ -40,6 +40,32 @@ build/linux/snake: $(GAME_SRC) src/plat_tty.c $(DEPS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(WARN) $(INCLUDES) -DLUA_USE_POSIX -o $@ \
 	  $(GAME_SRC) src/plat_tty.c -lm
+
+# --- Автотесты (без платформенного слоя: только ядро + логика) ---
+TEST_SRC  = $(wildcard tests/*.c) $(CORE_SRC)
+TEST_DEPS = $(DEPS) tests/test.h build/invariants_lua.h build/bot_lua.h
+
+build/invariants_lua.h: tests/invariants.lua build/bin2c
+	build/bin2c invariants_lua $< $@
+
+build/bot_lua.h: tests/bot.lua build/bin2c
+	build/bin2c bot_lua $< $@
+
+build/test/run_tests: $(TEST_SRC) $(TEST_DEPS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(WARN) $(INCLUDES) -Itests -o $@ $(TEST_SRC) -lm
+
+test: build/test/run_tests
+	build/test/run_tests
+
+# Те же тесты на 32-битном big-endian процессоре MIPS через эмулятор qemu.
+MIPS_CC = mips-linux-gnu-gcc
+build/test-mips/run_tests: $(TEST_SRC) $(TEST_DEPS)
+	@mkdir -p $(dir $@)
+	$(MIPS_CC) $(CFLAGS) $(WARN) $(INCLUDES) -Itests -static -o $@ $(TEST_SRC) -lm
+
+test-mips: build/test-mips/run_tests
+	qemu-mips $< 50
 
 clean:
 	rm -rf build
