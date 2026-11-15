@@ -18,6 +18,10 @@
 #include "invariants_lua.h"
 #include "bot_lua.h"
 
+#ifdef _WIN32
+#include <windows.h> /* чтобы русский текст выводился в консоль Windows */
+#endif
+
 int tests_failed = 0, checks_total = 0;
 
 Engine *make_game(unsigned long seed) {
@@ -60,6 +64,9 @@ static const char *byte_order(void) {
 
 int main(int argc, char **argv) {
     int runs = argc > 1 ? atoi(argv[1]) : 200;
+#ifdef _WIN32
+    SetConsoleOutputCP(65001); /* UTF-8 */
+#endif
 
     printf("Платформа: %d-битные указатели, %s\n", (int)(sizeof(void *) * 8), byte_order());
 
