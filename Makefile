@@ -19,7 +19,7 @@ CORE_SRC = src/engine.c $(LUA_SRC)
 GAME_SRC = src/main.c $(CORE_SRC)
 DEPS     = $(wildcard src/*.h) build/game_lua.h
 
-.PHONY: all linux test test-mips clean
+.PHONY: all linux windows test test-mips test-windows clean
 
 all: linux
 
@@ -40,6 +40,15 @@ build/linux/snake: $(GAME_SRC) src/plat_tty.c $(DEPS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(WARN) $(INCLUDES) -DLUA_USE_POSIX -o $@ \
 	  $(GAME_SRC) src/plat_tty.c -lm
+
+# --- Windows (x86-64): консоль WinAPI, кросс-компилятор MinGW-w64 ---
+WIN_CC = x86_64-w64-mingw32-gcc
+windows: build/windows/snake.exe
+
+build/windows/snake.exe: $(GAME_SRC) src/plat_win.c $(DEPS)
+	@mkdir -p $(dir $@)
+	$(WIN_CC) $(CFLAGS) $(WARN) $(INCLUDES) -static -o $@ \
+	  $(GAME_SRC) src/plat_win.c
 
 # --- Автотесты (без платформенного слоя: только ядро + логика) ---
 TEST_SRC  = $(wildcard tests/*.c) $(CORE_SRC)
@@ -66,6 +75,14 @@ build/test-mips/run_tests: $(TEST_SRC) $(TEST_DEPS)
 
 test-mips: build/test-mips/run_tests
 	qemu-mips $< 50
+
+# Те же тесты, собранные под Windows, запускаются через Wine.
+build/test-windows/run_tests.exe: $(TEST_SRC) $(TEST_DEPS)
+	@mkdir -p $(dir $@)
+	$(WIN_CC) $(CFLAGS) $(WARN) $(INCLUDES) -Itests -static -o $@ $(TEST_SRC)
+
+test-windows: build/test-windows/run_tests.exe
+	WINEDEBUG=-all wine $< 50
 
 clean:
 	rm -rf build
