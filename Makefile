@@ -19,7 +19,7 @@ CORE_SRC = src/engine.c $(LUA_SRC)
 GAME_SRC = src/main.c $(CORE_SRC)
 DEPS     = $(wildcard src/*.h) build/game_lua.h
 
-.PHONY: all linux windows test test-mips test-windows clean
+.PHONY: all linux windows dos test test-mips test-windows clean
 
 all: linux
 
@@ -49,6 +49,22 @@ build/windows/snake.exe: $(GAME_SRC) src/plat_win.c $(DEPS)
 	@mkdir -p $(dir $@)
 	$(WIN_CC) $(CFLAGS) $(WARN) $(INCLUDES) -static -o $@ \
 	  $(GAME_SRC) src/plat_win.c
+
+# --- MS-DOS (i386, 32 бита): DJGPP, текстовый режим ---
+# Кросс-компилятор: https://github.com/andrewwutw/build-djgpp
+DJGPP_CC ?= /opt/djgpp/bin/i586-pc-msdosdjgpp-gcc
+dos: build/dos/SNAKE.EXE
+
+DJGPP_EXE2COFF ?= /opt/djgpp/i586-pc-msdosdjgpp/bin/exe2coff
+
+# 1) компилируем; 2) exe2coff отрезает стандартный загрузчик;
+# 3) приклеиваем загрузчик со встроенным DPMI-сервером CWSDPMI.
+build/dos/SNAKE.EXE: $(GAME_SRC) src/plat_dos.c $(DEPS)
+	@mkdir -p build/dos/tmp
+	$(DJGPP_CC) $(CFLAGS) $(WARN) -std=gnu99 $(INCLUDES) -o build/dos/tmp/game.exe \
+	  $(GAME_SRC) src/plat_dos.c -lm
+	$(DJGPP_EXE2COFF) build/dos/tmp/game.exe
+	cat third_party/cwsdpmi/CWSDSTUB.EXE build/dos/tmp/game > $@
 
 # --- Автотесты (без платформенного слоя: только ядро + логика) ---
 TEST_SRC  = $(wildcard tests/*.c) $(CORE_SRC)
