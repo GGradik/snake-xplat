@@ -1,5 +1,7 @@
 # Змейка — кроссплатформенная ретро-игра
 
+[![CI](https://github.com/GGradik/snake-xplat/actions/workflows/ci.yml/badge.svg)](https://github.com/GGradik/snake-xplat/actions/workflows/ci.yml)
+
 Семестровый проект по дисциплине «Разработка кроссплатформенных
 программных систем» (РТУ МИРЭА, кафедра КИС).
 
