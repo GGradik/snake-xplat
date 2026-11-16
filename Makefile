@@ -19,7 +19,7 @@ CORE_SRC = src/engine.c $(LUA_SRC)
 GAME_SRC = src/main.c $(CORE_SRC)
 DEPS     = $(wildcard src/*.h) build/game_lua.h
 
-.PHONY: all linux windows dos test test-mips test-windows clean
+.PHONY: all linux windows dos web test test-mips test-windows clean
 
 all: linux
 
@@ -65,6 +65,15 @@ build/dos/SNAKE.EXE: $(GAME_SRC) src/plat_dos.c $(DEPS)
 	  $(GAME_SRC) src/plat_dos.c -lm
 	$(DJGPP_EXE2COFF) build/dos/tmp/game.exe
 	cat third_party/cwsdpmi/CWSDSTUB.EXE build/dos/tmp/game > $@
+
+# --- Web (wasm32): Emscripten, canvas + клавиатура + touch ---
+EMCC ?= emcc
+web: build/web/index.html
+
+build/web/index.html: $(GAME_SRC) src/plat_web.c web/shell.html $(DEPS)
+	@mkdir -p $(dir $@)
+	$(EMCC) -O2 $(WARN) $(INCLUDES) --shell-file web/shell.html \
+	  -s ALLOW_MEMORY_GROWTH=1 -s MINIFY_HTML=0 -o $@ $(GAME_SRC) src/plat_web.c
 
 # --- Автотесты (без платформенного слоя: только ядро + логика) ---
 TEST_SRC  = $(wildcard tests/*.c) $(CORE_SRC)
