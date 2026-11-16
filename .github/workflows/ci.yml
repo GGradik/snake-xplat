@@ -1,0 +1,45 @@
+# CI: на каждый push собираем игру под все платформы и запускаем тесты
+# на трёх «машинах»: x86-64, MIPS big-endian (qemu) и Windows (Wine).
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    env:
+      WINEDEBUG: -all
+      WINEDLLOVERRIDES: "mscoree,mshtml="  # не предлагать установку Mono/Gecko
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Установка компиляторов и эмуляторов
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64 emscripten \
+            gcc-mips-linux-gnu libc6-dev-mips-cross qemu-user wine64 wine
+          curl -sSL https://github.com/andrewwutw/build-djgpp/releases/download/v3.4/djgpp-linux64-gcc1220.tar.bz2 \
+            | sudo tar xj -C /opt
+
+      - name: Сборка — Linux, Windows, DOS, Web
+        run: make platforms
+
+      - name: Тесты на x86-64 (64 бита, little-endian)
+        run: make test
+
+      - name: Тесты на MIPS (32 бита, big-endian, qemu)
+        run: make test-mips
+
+      - name: Тесты Windows-сборки (Wine)
+        run: make test-windows
+
+      - name: Сохранить собранные программы
+        uses: actions/upload-artifact@v4
+        with:
+          name: snake-all-platforms
+          path: |
+            build/linux/snake
+            build/windows/snake.exe
+            build/dos/SNAKE.EXE
+            build/web/
