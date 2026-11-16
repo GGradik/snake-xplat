@@ -1,8 +1,16 @@
 # Makefile — сборка «Змейки» под все платформы.
 #
-#   make            — Linux/Unix (терминал)
-#   make test       — все автотесты на текущей машине
-#   make clean      — удалить build/
+#   make              — Linux/Unix (терминал): build/linux/snake
+#   make windows      — Windows x86-64:        build/windows/snake.exe
+#   make dos          — MS-DOS (i386):          build/dos/SNAKE.EXE
+#   make web          — браузер (wasm32):       build/web/index.html
+#   make platforms    — всё перечисленное
+#
+#   make test         — автотесты на текущей машине
+#   make test-mips    — автотесты на MIPS big-endian (qemu)
+#   make test-windows — автотесты под Windows (Wine)
+#   make check        — все три набора тестов
+#   make clean        — удалить build/
 
 CFLAGS   ?= -O2
 WARN      = -std=c99 -Wall -Wextra
@@ -19,9 +27,13 @@ CORE_SRC = src/engine.c $(LUA_SRC)
 GAME_SRC = src/main.c $(CORE_SRC)
 DEPS     = $(wildcard src/*.h) build/game_lua.h
 
-.PHONY: all linux windows dos web test test-mips test-windows clean
+.PHONY: all linux windows dos web platforms test test-mips test-windows check clean
 
 all: linux
+
+platforms: linux windows dos web
+
+check: test test-mips test-windows
 
 # --- Встраивание Lua-скрипта в программу ---
 # bin2c собирается обычным компилятором машины сборки (HOSTCC).
