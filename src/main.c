@@ -33,6 +33,9 @@ static void frame(void) {
         if (key == KEY_QUIT) running = 0;
         else engine_push_key(game, key);
     }
+    /* Если программа «уснула» (свернули окно, вкладка в фоне) —
+     * не пытаемся догнать пропущенные такты, а продолжаем с текущего. */
+    if (plat_ticks() > next_tick + 1000) next_tick = plat_ticks();
     if (plat_ticks() >= next_tick) {
         next_tick += TICK_MS;
         if (!engine_tick(game)) fail(engine_error(game));
